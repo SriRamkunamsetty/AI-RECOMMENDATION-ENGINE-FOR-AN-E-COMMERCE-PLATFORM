@@ -9,46 +9,66 @@ def login() -> rx.Component:
         navbar(),
         rx.container(
             rx.vstack(
-                rx.heading("Log In to Your Account", size="8", margin_bottom="1rem"),
+                rx.heading("Log In to Your Account", size="8", margin_bottom="1rem", color="#6F3E3F", font_family="Playfair Display"),
                 rx.text("Access your personalized AI recommendations.", color="gray", margin_bottom="2rem"),
                 
                 rx.card(
                     rx.vstack(
-                        rx.input(placeholder="Email Address", width="100%", size="3", on_change=UserState.set_email),
-                        rx.input(placeholder="Password", type="password", width="100%", size="3", margin_bottom="1rem", on_change=UserState.set_password),
+                        rx.input(placeholder="Email Address", width="100%", size="3", border_radius="full", background_color="#FFFFFF", border="1px solid #E8DCD1", on_change=UserState.set_email),
+                        rx.input(placeholder="Password", type="password", width="100%", size="3", margin_bottom="1rem", border_radius="full", background_color="#FFFFFF", border="1px solid #E8DCD1", on_change=UserState.set_password),
                         
                         rx.cond(
                             UserState.auth_error != "",
                             rx.text(UserState.auth_error, color="red", size="2", margin_bottom="1rem")
                         ),
                         
-                        rx.button("Secure Login", on_click=UserState.login_with_firebase, width="100%", color_scheme="blue", size="3"),
-                        
-                        rx.cond(
-                            UserState.logged_in,
-                            rx.callout(
-                                "Successfully Logged In! Redirecting...", 
-                                icon="check_circle", 
-                                color_scheme="green", 
-                                margin_top="1rem", 
-                                width="100%"
+                        rx.tabs.root(
+                            rx.tabs.list(
+                                rx.tabs.trigger("Existing User", value="login", width="50%"),
+                                rx.tabs.trigger("New User", value="signup", width="50%"),
+                                width="100%",
+                                margin_bottom="1.5rem"
                             ),
-                            rx.text("Don't have an account?", margin_top="2rem", color="gray")
-                        ),
-                        rx.cond(
-                            ~UserState.logged_in,
-                            rx.link("Sign Up Here", href="/signup", color="blue.500", weight="bold")
+                            rx.tabs.content(
+                                rx.vstack(
+                                    rx.input(placeholder="Email Address", width="100%", size="3", on_change=UserState.set_email),
+                                    rx.input(placeholder="Password", type="password", width="100%", size="3", margin_bottom="1rem", on_change=UserState.set_password),
+                                    rx.button("LOGIN", on_click=UserState.login_with_firebase, width="100%", background_color="#6F3E3F", color="white", size="3"),
+                                    width="100%"
+                                ),
+                                value="login"
+                            ),
+                            rx.tabs.content(
+                                rx.vstack(
+                                    rx.input(placeholder="Email Address", width="100%", size="3", on_change=UserState.set_email),
+                                    rx.input(placeholder="Create Password", type="password", width="100%", size="3", margin_bottom="1rem", on_change=UserState.set_password),
+                                    rx.button("REGISTER", on_click=UserState.signup_with_firebase, width="100%", background_color="#6F3E3F", color="white", size="3"),
+                                    width="100%"
+                                ),
+                                value="signup"
+                            ),
+                            default_value="login",
+                            width="100%"
                         ),
                         
-                        align_items="center",
-                        width="100%"
+                        rx.divider(margin_y="1rem"),
+                        rx.button(
+                            rx.icon("chrome", size=20, margin_right="0.5rem"),
+                            "Sign in with Google", 
+                            width="100%", 
+                            variant="outline", 
+                            color="#6F3E3F", 
+                            size="3",
+                            on_click=rx.window_alert("Google Sign-In requires Firebase JS SDK configuration across your domain.")
+                        ),
                     ),
                     padding="3rem",
                     width="100%",
                     max_width="450px",
-                    shadow="lg",
-                    border_radius="xl",
-                    background_color="white"
+                    shadow="sm",
+                    border_radius="2xl",
+                    border="1px solid #E8DCD1",
+                    background_color="#FFFFFF"
                 ),
                 
                 padding_top="10vh",
@@ -57,6 +77,6 @@ def login() -> rx.Component:
             ),
             size="4"
         ),
-        background_color="#f9fafb",
+        background_color="#FDF8F5",
         min_height="100vh"
     )

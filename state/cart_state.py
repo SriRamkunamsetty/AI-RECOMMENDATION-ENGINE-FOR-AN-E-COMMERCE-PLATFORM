@@ -1,7 +1,9 @@
 import reflex as rx
 from typing import List, Dict, Any
 
-class CartState(rx.State):
+from state.user_state import UserState
+
+class CartState(UserState):
     """
     State for managing the shopping cart.
     Stores cart items and total price.
@@ -39,6 +41,7 @@ class CartState(rx.State):
             self.cart_items.append(new_item)
             
         self.calculate_total()
+        self.sync_to_firebase()
         
     def remove_from_cart(self, product_id: int):
         """
@@ -46,6 +49,7 @@ class CartState(rx.State):
         """
         self.cart_items = [item for item in self.cart_items if item.get('ProdID') != product_id]
         self.calculate_total()
+        self.sync_to_firebase()
         
     def calculate_total(self):
         """
@@ -60,6 +64,28 @@ class CartState(rx.State):
         """
         self.cart_items = []
         self.total_price = 0.0
+        self.sync_to_firebase()
+        
+    def sync_to_firebase(self):
+        """Pushes current cart state to Firebase."""
+        if self.logged_in and self.firebase_uid:
+            try:
+                db = self._get_firebase().database()
+                db.child("users").child(self.firebase_uid).child("cart").set(self.cart_items)
+            except Exception as e:
+                print("Firebase cart sync failed:", e)
+
+    def load_from_firebase(self):
+        """Loads cart state from Firebase."""
+        if self.logged_in and self.firebase_uid:
+            try:
+                db = self._get_firebase().database()
+                cart_data = db.child("users").child(self.firebase_uid).child("cart").get().val()
+                if cart_data:
+                    self.cart_items = [item for item in cart_data if item] # Filter out 'None' elements that firebase arrays might return
+                    self.calculate_total()
+            except Exception as e:
+                print("Firebase cart load failed:", e)
 
     @rx.var
     def tax_amount(self) -> float:

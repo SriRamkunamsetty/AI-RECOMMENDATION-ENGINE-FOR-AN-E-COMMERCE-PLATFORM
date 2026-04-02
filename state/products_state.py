@@ -4,7 +4,9 @@ import os
 from typing import List, Dict, Any
 from config import DATA_PATH
 
-class ProductsState(rx.State):
+from state.user_state import UserState
+
+class ProductsState(UserState):
     """Local state for fetching global catalog of products."""
     all_products: List[Dict[str, Any]] = []
     search_query: str = ""
@@ -60,9 +62,34 @@ class ProductsState(rx.State):
 
     def update_search(self, q: str):
         self.search_query = q
+        self.sync_search_to_firebase(q)
         return self.fetch_products()
     
     def handle_search_submit(self, form_data: Dict[str, Any]):
         query = form_data.get("q", "")
+        self.search_query = query
+        self.sync_search_to_firebase(query)
         # Force a redirect to the home page with the query
         return rx.redirect(f"/?q={query}")
+
+    def sync_search_to_firebase(self, q: str):
+        """Save search history to Firebase."""
+        if self.logged_in and self.firebase_uid and q.strip():
+            try:
+                db = self._get_firebase().database()
+                db.child("users").child(self.firebase_uid).child("search_history").push(q)
+            except Exception as e:
+                print("Firebase search sync failed:", e)
+
+    def load_search_from_firebase(self):
+        """Loads last search query from Firebase."""
+        if self.logged_in and self.firebase_uid:
+            try:
+                db = self._get_firebase().database()
+                history = db.child("users").child(self.firebase_uid).child("search_history").order_by_key().limit_to_last(1).get().val()
+                if history:
+                    # history is a dict {key: val}
+                    last_search = list(history.values())[-1]
+                    self.search_query = last_search
+            except Exception as e:
+                print("Firebase search load failed:", e)

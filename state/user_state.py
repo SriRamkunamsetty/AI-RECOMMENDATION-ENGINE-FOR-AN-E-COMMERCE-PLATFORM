@@ -21,6 +21,19 @@ class UserState(rx.State):
     password: str = ""
     auth_error: str = ""
     
+    def _get_firebase(self):
+        from pyrebase import initialize_app
+        firebase_config = {
+            "apiKey": os.getenv("FIREBASE_API_KEY", "placeholder"),
+            "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", "placeholder"),
+            "projectId": os.getenv("FIREBASE_PROJECT_ID", "placeholder"),
+            "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", "placeholder"),
+            "messagingSenderId": os.getenv("FIREBASE_SENDER_ID", "placeholder"),
+            "appId": os.getenv("FIREBASE_APP_ID", "placeholder"),
+            "databaseURL": os.getenv("FIREBASE_DATABASE_URL", "")
+        }
+        return initialize_app(firebase_config)
+
     def signup_with_firebase(self):
         """Register a new user with Firebase using email/password."""
         if not self.email or not self.password:
@@ -28,21 +41,11 @@ class UserState(rx.State):
             return
             
         try:
-            from pyrebase import initialize_app
-            firebase_config = {
-                "apiKey": os.getenv("FIREBASE_API_KEY", "placeholder"),
-                "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", "placeholder"),
-                "projectId": os.getenv("FIREBASE_PROJECT_ID", "placeholder"),
-                "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", "placeholder"),
-                "messagingSenderId": os.getenv("FIREBASE_SENDER_ID", "placeholder"),
-                "appId": os.getenv("FIREBASE_APP_ID", "placeholder"),
-                "databaseURL": os.getenv("FIREBASE_DATABASE_URL", "")
-            }
-            firebase = initialize_app(firebase_config)
+            firebase = self._get_firebase()
             auth = firebase.auth()
             
             user = auth.create_user_with_email_and_password(self.email, self.password)
-            self._handle_successful_login(user['localId'])
+            yield from self._handle_successful_login(user['localId'])
             yield rx.redirect("/")
         except Exception as e:
             # Simple error parsing for UI
@@ -55,21 +58,11 @@ class UserState(rx.State):
             return
             
         try:
-            from pyrebase import initialize_app
-            firebase_config = {
-                "apiKey": os.getenv("FIREBASE_API_KEY", "placeholder"),
-                "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", "placeholder"),
-                "projectId": os.getenv("FIREBASE_PROJECT_ID", "placeholder"),
-                "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", "placeholder"),
-                "messagingSenderId": os.getenv("FIREBASE_SENDER_ID", "placeholder"),
-                "appId": os.getenv("FIREBASE_APP_ID", "placeholder"),
-                "databaseURL": os.getenv("FIREBASE_DATABASE_URL", "")
-            }
-            firebase = initialize_app(firebase_config)
+            firebase = self._get_firebase()
             auth = firebase.auth()
             
             user = auth.sign_in_with_email_and_password(self.email, self.password)
-            self._handle_successful_login(user['localId'])
+            yield from self._handle_successful_login(user['localId'])
             yield rx.redirect("/")
         except Exception as e:
             self.auth_error = "Login failed. Please check credentials."
@@ -84,6 +77,12 @@ class UserState(rx.State):
         mapped_numeric_id = 1705  
         self.user_id = mapped_numeric_id
         
+        # Load user data from Firebase asynchronously
+        from state.cart_state import CartState
+        from state.products_state import ProductsState
+        yield CartState.load_from_firebase
+        yield ProductsState.load_search_from_firebase
+        
         # Check if user exists in the dataset
         try:
             if os.path.exists(DATA_PATH):
@@ -97,6 +96,11 @@ class UserState(rx.State):
         except Exception as e:
             self.is_new_user = True
             
+    def check_login(self):
+        """Redirect to login if not authenticated."""
+        if not self.logged_in:
+            return rx.redirect("/login")
+
     def logout(self):
         """Reset state on logout."""
         self.user_id = -1

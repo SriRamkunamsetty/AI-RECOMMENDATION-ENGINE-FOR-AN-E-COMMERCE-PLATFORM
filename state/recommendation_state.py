@@ -13,11 +13,12 @@ class RecommendationState(UserState):
     recommendations: List[Dict[str, Any]] = []
     is_loading: bool = False
     
-    def fetch_general_recommendations(self):
+    async def fetch_general_recommendations(self):
         """Helper to fetch without passing the click event args to the integer parameter."""
-        yield from self.fetch_recommendations(current_product_id=None)
+        async for event in self.fetch_recommendations(current_product_id=None):
+            yield event
         
-    def fetch_recommendations(self, current_product_id: int = None):
+    async def fetch_recommendations(self, current_product_id: int = None):
         """
         Check user_type, call respective model, convert result -> UI format.
         Takes an optional `current_product_id` to blend content filtering.
@@ -27,11 +28,16 @@ class RecommendationState(UserState):
         yield 
         
         try:
+            from state.products_state import ProductsState
+            products_state = await self.get_state(ProductsState)
+            search_hist = products_state.search_query
+            
             # Call combined approach from recommender.py
             recs_df = get_combined_recommendations(
                 user_id=self.user_id if self.logged_in else None,
                 is_new_user=self.is_new_user,
                 current_product_id=current_product_id,
+                search_query=search_hist,
                 top_n=20
             )
             

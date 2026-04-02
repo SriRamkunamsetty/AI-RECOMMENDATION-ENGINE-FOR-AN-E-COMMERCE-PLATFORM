@@ -22,28 +22,29 @@ def product_card(product: dict) -> rx.Component:
                 fallback="https://via.placeholder.com/150"
             ),
             rx.box(
-                rx.text(display_name, font_weight="bold", font_size="md", no_of_lines=1),
+                rx.text(display_name, font_weight="bold", font_size="md", no_of_lines=1, font_family="Playfair Display", color="#4A332C"),
                 rx.text(description, color="gray", font_size="xs", no_of_lines=2, margin_top="0.25rem"),
                 margin_top="0.5rem"
             ),
             rx.hstack(
                 # Use dataset rating if available
-                rx.badge("★ ", product.get("Rating", "N/A"), color_scheme="green"),
+                rx.text(f"★ {product.get('Rating', 'N/A')}", font_size="sm", color="#B59288"),
                 rx.spacer(),
-                rx.text(f"₹{product['Price']}", font_weight="bold", color="blue.600"),
+                rx.text(f"₹{product['Price']}", font_weight="bold", color="#6F3E3F"),
                 width="100%",
                 padding_top="0.5rem"
             ),
             rx.hstack(
                 rx.link(
-                    rx.button("View Detail", width="100%"),
+                    rx.button("VIEW", width="100%", background_color="#6F3E3F", color="white", border_radius="full"),
                     href=f"/product/{product['ProdID']}",
                     flex="1"
                 ),
                 rx.button(
-                    rx.icon("heart"),
-                    color_scheme="red",
-                    variant="soft",
+                    rx.icon("heart", color="#6F3E3F"),
+                    background_color="white",
+                    border="1px solid #D6C0B4",
+                    border_radius="full",
                     on_click=WishlistState.add_to_wishlist(product)
                 ),
                 width="100%",
@@ -56,8 +57,10 @@ def product_card(product: dict) -> rx.Component:
             justify_content="space-between"
         ),
         shadow="sm",
-        _hover={"shadow": "md", "transform": "translateY(-2px)", "transition": "all 0.2s"},
+        border="1px solid #E8DCD1",
+        _hover={"border_color": "#6F3E3F", "transition": "all 0.2s"},
         overflow="hidden",
-        border_radius="md",
+        border_radius="2xl",
+        background_color="#FFFFFF",
         width="100%"
     )
