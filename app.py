@@ -1,12 +1,13 @@
 import reflex as rx
 
 # Import Application States to ensure they register
-from state.user_state import UserState
-from state.cart_state import CartState
-from state.recommendation_state import RecommendationState
-from state.payment_state import PaymentState
-from state.products_state import ProductsState
-from state.wishlist_state import WishlistState
+from state.user_state import UserState  # noqa: F401
+from state.cart_state import CartState  # noqa: F401
+from state.recommendation_state import RecommendationState  # noqa: F401
+from state.payment_state import PaymentState  # noqa: F401
+from state.products_state import ProductsState  # noqa: F401
+from state.wishlist_state import WishlistState  # noqa: F401
+from state.orders_state import OrderState  # noqa: F401
 
 # Import pages (as we build them)
 import pages.profile
@@ -18,7 +19,7 @@ import pages.cart
 import pages.checkout
 import pages.payment
 import pages.wishlist
-import pages.orders
+import pages.orders  # noqa: F401
 
 # Create main Reflex App
 app = rx.App(
