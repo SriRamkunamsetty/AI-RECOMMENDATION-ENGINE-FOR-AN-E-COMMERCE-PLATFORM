@@ -3,10 +3,11 @@
 import reflex as rx
 
 # Application State Imports
-from state.user_state import UserState
-from state.cart_state import CartState
-from state.recommendation_state import RecommendationState
-from state.wishlist_state import WishlistState
+from state.user_state import UserState  # noqa: F401
+from state.cart_state import CartState  # noqa: F401
+from state.recommendation_state import RecommendationState  # noqa: F401
+from state.wishlist_state import WishlistState  # noqa: F401
+from state.orders_state import OrderState  # noqa: F401
 
 # Import all pages to ensure their routes are registered via their decorators
 import pages.home
@@ -18,7 +19,7 @@ import pages.checkout
 import pages.payment
 import pages.profile
 import pages.wishlist
-import pages.orders
+import pages.orders  # noqa: F401
 
 app = rx.App(
     theme=rx.theme(

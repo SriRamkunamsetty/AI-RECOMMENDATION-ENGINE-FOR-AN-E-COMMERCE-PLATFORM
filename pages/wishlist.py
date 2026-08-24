@@ -21,7 +21,7 @@ def wishlist() -> rx.Component:
                     rx.grid(
                         rx.foreach(
                             WishlistState.wishlist_items,
-                            lambda p: product_card(p)
+                            lambda p: product_card(p, allow_remove=True)
                         ),
                         columns="4",
                         spacing="4",
