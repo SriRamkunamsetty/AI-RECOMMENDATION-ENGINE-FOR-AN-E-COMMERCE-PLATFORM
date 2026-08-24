@@ -14,7 +14,7 @@ def signup() -> rx.Component:
                 
                 rx.card(
                     rx.vstack(
-                        rx.input(placeholder="Full Name", width="100%", size="3"),
+                        rx.input(placeholder="Full Name", name="full_name", width="100%", size="3", on_change=UserState.set_full_name, required=True),
                         rx.input(placeholder="Email Address", width="100%", size="3", on_change=UserState.set_email),
                         rx.input(placeholder="Password", type="password", width="100%", size="3", margin_bottom="1rem", on_change=UserState.set_password),
                         
@@ -29,7 +29,7 @@ def signup() -> rx.Component:
                             UserState.logged_in,
                             rx.callout(
                                 "Registration Success! You are now logged in.", 
-                                icon="check_circle", 
+                                icon="circle_check",
                                 color_scheme="green", 
                                 margin_top="1rem", 
                                 width="100%"
