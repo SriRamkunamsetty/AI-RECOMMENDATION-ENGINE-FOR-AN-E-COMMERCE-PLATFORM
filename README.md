@@ -1,156 +1,80 @@
-# 🛍️ AI Store - Project Setup Guide
+# AI Recommendation Engine for an E-Commerce Platform
 
-This guide will help you **run the AI Store project locally** on your system step-by-step.
+This project is a Python/Reflex e-commerce prototype that combines rating-based, collaborative, and TF-IDF content-based recommendations with catalog search, Firebase authentication, a cart, wishlist, checkout, order history, and an optional Groq shopping assistant.
 
----
+## Requirements
 
-## 📌 Step 1: Clone or Download the Project
-
-### Option 1: Using Git
+Use Python 3.11 or newer and install the pinned dependencies:
 
 ```bash
-git clone https://github.com/Sanjaykris20/AI-Store.git
-cd AI-Store
-```
-
-### Option 2: Download ZIP
-
-* Click **Code → Download ZIP**
-* Extract the folder
-* Open it in **VS Code**
-
----
-
-## 📌 Step 2: Identify Project Type
-
-Check the files in the project folder:
-
-| File Found         | Project Type         |
-| ------------------ | -------------------- |
-| `index.html`       | Static Website       |
-| `package.json`     | React / Node Project |
-| `requirements.txt` | Python Backend       |
-
----
-
-## 🚀 Step 3: Run the Project
-
----
-
-### ✅ Case 1: Static Website (index.html)
-
-#### Method 1 (Simple)
-
-* Open `index.html` in your browser
-
-#### Method 2 (Recommended)
-
-* Install **Live Server extension in VS Code**
-* Right-click `index.html`
-* Click **Open with Live Server**
-
-👉 Runs on:
-http://127.0.0.1:5500
-
----
-
-### ✅ Case 2: React / Node Project
-
-#### Step 1: Install Node.js
-
-Download and install Node.js if not already installed.
-
-#### Step 2: Install Dependencies
-
-```bash
-npm install
-```
-
-#### Step 3: Start the Project
-
-```bash
-npm start
-```
-
-👉 Open in browser:
-http://localhost:3000
-
----
-
-### ✅ Case 3: Python Backend (if applicable)
-
-#### Install dependencies:
-
-```bash
+python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\\Scripts\\activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-#### Run backend:
+## Configuration
 
-```bash
-python app.py
+Create a `.env` file in the repository root. Firebase variables are required for authentication, cart, wishlist, search-history, and order persistence. The Groq key is optional and only enables the AI assistant.
+
+```env
+FIREBASE_API_KEY=your-value
+FIREBASE_AUTH_DOMAIN=your-value
+FIREBASE_PROJECT_ID=your-value
+FIREBASE_STORAGE_BUCKET=your-value
+FIREBASE_SENDER_ID=your-value
+FIREBASE_APP_ID=your-value
+FIREBASE_DATABASE_URL=your-value
+GROQ_API_KEY=your-value
+GROQ_MODEL=llama-3.1-8b-instant
 ```
 
----
+Never commit `.env`, Firebase secrets, Groq keys, or payment credentials. The repository uses a clearly labelled local demo payment flow; it does not perform a real charge.
 
-## ⚠️ Common Errors & Fixes
+## Prepare the dataset
 
-### ❌ npm not recognized
-
-👉 Install Node.js
-
----
-
-### ❌ Module not found
+The raw dataset is `clean_data.csv`. To regenerate the runtime dataset and remove invalid sentinel identifiers, run this command from any working directory:
 
 ```bash
-npm install
+python -m backend.cleaning_data
 ```
 
----
+The output is written to the repository’s `cleaned_data.csv` path.
 
-### ❌ Port already in use
+## Run the application
+
+Start the Reflex development server from the repository root:
 
 ```bash
-npm start -- --port 3001
+reflex run
 ```
 
----
+Then open the URL printed by Reflex, normally `http://localhost:3000`. Running `python app.py` only imports the application module; it is not the server command.
 
-### ❌ Blank Page / Not Loading
+## Test and quality checks
 
-* Open browser console (F12)
-* Check for errors
-* Verify file paths
+Run the standard-library regression suite with:
 
----
+```bash
+python -m unittest discover -s tests -v
+```
 
-## 🧪 Final Check
+The tests cover dataset cleaning, canonical pricing, recommendation data contracts, cart totals, search encoding, and order validation. For a production deployment, configure the same environment variables in the hosting service and ensure Firebase rules prevent one authenticated UID from reading another UID’s data.
 
-Make sure:
+## Main routes
 
-* Website loads correctly
-* UI is visible
-* Buttons and features work
-* No console errors
+| Route | Purpose |
+|---|---|
+| `/` | Guest catalog, cold-start recommendations, and search |
+| `/login` | Firebase login |
+| `/signup` | Firebase registration |
+| `/product/<id>` | Product detail and similar products |
+| `/cart` | Cart items and calculated totals |
+| `/checkout` | Validated shipping details |
+| `/payment` | Explicit local demo payment |
+| `/orders` | Per-user order history |
+| `/wishlist` | Per-user saved products |
 
----
+## Contribution workflow
 
-## 🎯 Summary
-
-| Step | Action                   |
-| ---- | ------------------------ |
-| 1    | Clone / Download project |
-| 2    | Identify project type    |
-| 3    | Run using correct method |
-| 4    | Fix errors if any        |
-
----
-
-## 🚀 You're Ready!
-
-Your AI Store project should now be running locally 🎉
-
----
-
-💡 If you face any issues, check errors carefully or debug step-by-step.
+Create a focused branch for each maintainer-approved issue, add a regression test, and run the test suite before opening a pull request. In the pull-request description, include `Fixes #<issue-number>`, the exact behavior changed, and the verification command. Keep unrelated features in separate pull requests so the review history remains clear.
