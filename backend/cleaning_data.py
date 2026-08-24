@@ -1,29 +1,44 @@
-import pandas as pd
+"""Clean the raw interaction dataset into the runtime catalog dataset."""
+
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 
-data = pd.read_csv("clean_data.csv")
+from config import PROJECT_ROOT
+from backend.data_utils import CORRUPTED_ID
 
-# 
-data['ProdID'] = data['ProdID'].replace('-2147483648', np.nan)
-data["User's ID"] = data["User's ID"].replace('-2147483648', np.nan)
 
-data = data.dropna(subset=["User's ID"])
-data["User's ID"] = data["User's ID"].astype('int64')
+INPUT_PATH = Path(PROJECT_ROOT) / "clean_data.csv"
+OUTPUT_PATH = Path(PROJECT_ROOT) / "cleaned_data.csv"
 
-data = data.dropna(subset=['ProdID'])
-data['ProdID'] = data['ProdID'].astype('int64')
 
-data['Review Count'] = data['Review Count'].astype('int64')
+def clean_dataset(input_path: str | Path = INPUT_PATH, output_path: str | Path = OUTPUT_PATH) -> pd.DataFrame:
+    data = pd.read_csv(input_path)
+    for column in ("ProdID", "User's ID"):
+        if column in data.columns:
+            numeric = pd.to_numeric(data[column], errors="coerce")
+            data[column] = numeric.replace(CORRUPTED_ID, np.nan)
 
-data['Category'] = data['Category'].fillna('')
-data['Brand'] = data['Brand'].fillna('')
-data['Description'] = data['Description'].fillna('')
-data['Tags'] = data['Tags'].fillna('')
+    data = data.dropna(subset=["User's ID", "ProdID"]).copy()
+    data["User's ID"] = data["User's ID"].astype("int64")
+    data["ProdID"] = data["ProdID"].astype("int64")
 
-# To clean image data by choose only first URL before the '|'
-if 'ImageURL' in data.columns:
-    data['ImageURL'] = data['ImageURL'].fillna('').apply(lambda x: str(x).split('|')[0] if pd.notnull(x) else x)
-elif 'Image URL' in data.columns:
-    data['Image URL'] = data['Image URL'].fillna('').apply(lambda x: str(x).split('|')[0] if pd.notnull(x) else x)
+    if "Review Count" in data.columns:
+        data["Review Count"] = pd.to_numeric(data["Review Count"], errors="coerce").fillna(0).astype("int64")
+    for column in ("Category", "Brand", "Description", "Tags"):
+        if column in data.columns:
+            data[column] = data[column].fillna("")
+    if "ImageURL" in data.columns:
+        data["ImageURL"] = data["ImageURL"].fillna("").astype(str).str.split("|").str[0].str.strip()
+    if "Image URL" in data.columns:
+        data["Image URL"] = data["Image URL"].fillna("").astype(str).str.split("|").str[0].str.strip()
 
-data.to_csv("cleaned_data.csv", index=False)
+    output_path = Path(output_path)
+    data.to_csv(output_path, index=False)
+    return data
+
+
+if __name__ == "__main__":
+    cleaned = clean_dataset()
+    print(f"Wrote {len(cleaned)} rows to {OUTPUT_PATH}")
