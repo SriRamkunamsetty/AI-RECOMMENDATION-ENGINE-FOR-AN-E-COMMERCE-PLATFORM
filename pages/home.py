@@ -5,7 +5,7 @@ from state.products_state import ProductsState
 from components.navbar import navbar
 from components.product_card import product_card
 
-@rx.page(route="/", title="Home - AI Store", on_load=[UserState.check_login, RecommendationState.fetch_general_recommendations, ProductsState.fetch_products])
+@rx.page(route="/", title="Home - AI Store", on_load=[RecommendationState.fetch_general_recommendations, ProductsState.fetch_products])
 def home() -> rx.Component:
     """The landing page. Shows different headings based on user type, or search results."""
     return rx.box(

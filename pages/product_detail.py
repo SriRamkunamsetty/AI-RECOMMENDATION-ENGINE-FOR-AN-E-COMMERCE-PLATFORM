@@ -3,11 +3,11 @@ from components.navbar import navbar
 from state.cart_state import CartState
 from state.recommendation_state import RecommendationState
 from components.product_card import product_card
-from config import DATA_PATH
-import pandas as pd
-import os
+from backend.data_utils import load_interactions, price_for_product
+
+
 class ProductDetailState(rx.State):
-    """Local state for product details. Typically queries ID from URL Params."""
+    """Local state for product details; Reflex injects the dynamic ``pid`` argument."""
     current_product: dict = {
         "ProdID": 999, 
         "Brand": "Loading...", 
@@ -22,32 +22,24 @@ class ProductDetailState(rx.State):
             if not self.pid:
                 return
             target_id = int(self.pid)
-            import pandas as pd
-            import os
-            if os.path.exists(DATA_PATH):
-                df = pd.read_csv(DATA_PATH)
-                match = df[df['ProdID'] == target_id]
-                if not match.empty:
-                    item = match.iloc[0].fillna('').to_dict()
-                    if "ImageURL" in item and item["ImageURL"]:
-                        item["ImageURL"] = str(item["ImageURL"]).split(" | ")[0]
-                    else:
-                        item["ImageURL"] = "/placeholder.jpg"
-                    
-                    item["Price"] = f"{(int(item['ProdID']) % 2500) + 499}.00"
-                    
-                    if "Rating" in item and item["Rating"] != "":
-                        try:
-                            item["Rating"] = f"{float(item['Rating']):.1f}"
-                        except:
-                            item["Rating"] = "N/A"
-                            
-                    if not item.get("Description"):
-                        item["Description"] = "No detailed description available for this product."
-                    self.current_product = item
-                    return
-        except Exception as e:
-            print(f"Error loading product detail: {e}")
+            data = load_interactions()
+            match = data[data["ProdID"] == target_id]
+            if match.empty:
+                raise LookupError(f"Product {target_id} was not found")
+
+            item = match.iloc[0].fillna("").to_dict()
+            image_url = str(item.get("ImageURL", "")).split(" | ")[0]
+            item["ImageURL"] = image_url or "/placeholder.jpg"
+            item["Price"] = f"{price_for_product(item['ProdID']):.2f}"
+            try:
+                item["Rating"] = f"{float(item.get('Rating', 0)):.1f}"
+            except (TypeError, ValueError):
+                item["Rating"] = "N/A"
+            item["Description"] = item.get("Description") or "No detailed description available for this product."
+            self.current_product = item
+            return
+        except (ValueError, LookupError, OSError, KeyError) as exc:
+            print(f"Error loading product detail: {exc}")
             
         self.current_product = {
             "ProdID": 999, 
