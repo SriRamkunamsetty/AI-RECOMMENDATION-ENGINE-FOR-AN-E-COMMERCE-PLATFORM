@@ -112,3 +112,10 @@ class EntrypointParityTests(unittest.TestCase):
         ).read_text()
         self.assertIn("from state.products_state import ProductsState", source)
         self.assertIn("from state.payment_state import PaymentState", source)
+
+
+class SearchSessionTests(unittest.TestCase):
+    def test_search_history_loader_resets_before_restore(self):
+        source = (Path(__file__).parents[1] / "state" / "products_state.py").read_text()
+        method = source.split("    def load_search_from_firebase", 1)[1].split("    def ", 1)[0]
+        self.assertLess(method.index('self.search_query = ""'), method.index("if self.logged_in"))
