@@ -101,3 +101,14 @@ class SessionSafetyTests(unittest.TestCase):
         self.assertIn("yield WishlistState.clear_wishlist_locally", source)
         self.assertNotIn("yield CartState.clear_cart\n", source)
         self.assertNotIn("yield WishlistState.clear_wishlist\\n", source)
+
+
+class EntrypointParityTests(unittest.TestCase):
+    def test_secondary_entrypoint_registers_catalog_and_payment_states(self):
+        source = (
+            Path(__file__).parents[1]
+            / "AI_Enabled_Recommendation_Engine_for_an_E_commerce_Platform"
+            / "AI_Enabled_Recommendation_Engine_for_an_E_commerce_Platform.py"
+        ).read_text()
+        self.assertIn("from state.products_state import ProductsState", source)
+        self.assertIn("from state.payment_state import PaymentState", source)
