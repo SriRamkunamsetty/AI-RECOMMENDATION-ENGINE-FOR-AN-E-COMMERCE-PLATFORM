@@ -138,8 +138,8 @@ class UserState(rx.State):
         from state.cart_state import CartState
         from state.wishlist_state import WishlistState
 
-        yield CartState.clear_cart
-        yield WishlistState.clear_wishlist
+        yield CartState.clear_cart_locally
+        yield WishlistState.clear_wishlist_locally
         self.user_id = -1
         self.logged_in = False
         self.is_new_user = True

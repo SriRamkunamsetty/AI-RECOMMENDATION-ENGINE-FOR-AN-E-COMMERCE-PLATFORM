@@ -24,8 +24,12 @@ class WishlistState(UserState):
         ]
         self.sync_to_firebase()
 
-    def clear_wishlist(self):
+    def clear_wishlist_locally(self):
+        """Clear session-local wishlist state without persisting a deletion."""
         self.wishlist_items = []
+
+    def clear_wishlist(self):
+        self.clear_wishlist_locally()
         self.sync_to_firebase()
 
     def sync_to_firebase(self):

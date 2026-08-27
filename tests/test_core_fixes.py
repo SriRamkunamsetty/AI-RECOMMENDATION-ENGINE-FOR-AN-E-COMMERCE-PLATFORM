@@ -84,3 +84,20 @@ class CartAndCheckoutTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SessionSafetyTests(unittest.TestCase):
+    def test_local_only_clear_methods_do_not_sync(self):
+        cart_source = (Path(__file__).parents[1] / "state" / "cart_state.py").read_text()
+        wishlist_source = (Path(__file__).parents[1] / "state" / "wishlist_state.py").read_text()
+        cart_local = cart_source.split("    def clear_cart_locally", 1)[1].split("    def clear_cart", 1)[0]
+        wishlist_local = wishlist_source.split("    def clear_wishlist_locally", 1)[1].split("    def clear_wishlist", 1)[0]
+        self.assertNotIn("sync_to_firebase", cart_local)
+        self.assertNotIn("sync_to_firebase", wishlist_local)
+
+    def test_logout_uses_local_only_clear_events(self):
+        source = (Path(__file__).parents[1] / "state" / "user_state.py").read_text()
+        self.assertIn("yield CartState.clear_cart_locally", source)
+        self.assertIn("yield WishlistState.clear_wishlist_locally", source)
+        self.assertNotIn("yield CartState.clear_cart\n", source)
+        self.assertNotIn("yield WishlistState.clear_wishlist\\n", source)

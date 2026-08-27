@@ -55,9 +55,13 @@ class CartState(UserState):
     def calculate_total(self):
         self.cart_items, self.total_price = calculate_cart_totals(self.cart_items)
 
-    def clear_cart(self):
+    def clear_cart_locally(self):
+        """Clear session-local cart state without persisting a deletion."""
         self.cart_items = []
         self.total_price = 0.0
+
+    def clear_cart(self):
+        self.clear_cart_locally()
         self.sync_to_firebase()
 
     def sync_to_firebase(self):
