@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlparse
 import pandas as pd
 
 from backend.cleaning_data import clean_dataset
-from backend.data_utils import CORRUPTED_ID, load_interactions, price_for_product
+from backend.data_utils import CORRUPTED_ID, canonical_products, load_interactions, price_for_product
 from backend.recommender import get_combined_recommendations
 from state.cart_state import calculate_cart_totals
 from state.orders_state import validate_shipping_details
@@ -51,6 +51,11 @@ class DataAndRecommendationTests(unittest.TestCase):
         result = get_combined_recommendations(user_id=999999999, is_new_user=False, top_n=3)
         self.assertIsInstance(result, pd.DataFrame)
         self.assertTrue(result.empty)
+
+    def test_canonical_products_handles_missing_optional_metadata(self):
+        products = canonical_products(pd.DataFrame({"ProdID": [1, 1], "Name": ["Example", "Example"]}))
+        self.assertEqual(products.loc[0, "ImageURL"], "")
+        self.assertTrue(pd.isna(products.loc[0, "Rating"]))
 
 
 class CartAndCheckoutTests(unittest.TestCase):

@@ -57,7 +57,10 @@ def canonical_products(data: pd.DataFrame) -> pd.DataFrame:
         return ""
 
     aggregations = {column: first_non_empty for column in PRODUCT_TEXT_COLUMNS if column in data.columns}
-    products = data.groupby("ProdID", as_index=False, sort=True).agg(aggregations)
+    if aggregations:
+        products = data.groupby("ProdID", as_index=False, sort=True).agg(aggregations)
+    else:
+        products = data[["ProdID"]].drop_duplicates().sort_values("ProdID").reset_index(drop=True)
     if "Product_Display_Name" not in products.columns:
         products["Product_Display_Name"] = products.apply(
             lambda row: first_non_empty(
@@ -68,10 +71,14 @@ def canonical_products(data: pd.DataFrame) -> pd.DataFrame:
     if "ImageURL" in data.columns:
         images = data.groupby("ProdID")["ImageURL"].agg(first_non_empty)
         products = products.merge(images.rename("ImageURL"), on="ProdID", how="left")
+    else:
+        products["ImageURL"] = ""
     if "Rating" in data.columns:
         ratings = data.groupby("ProdID")["Rating"].mean().rename("Rating")
         products = products.merge(ratings, on="ProdID", how="left")
-    products["ImageURL"] = products.get("ImageURL", "").fillna("").astype(str).str.split(" | ").str[0]
+    else:
+        products["Rating"] = pd.NA
+    products["ImageURL"] = products["ImageURL"].fillna("").astype(str).str.split(" | ").str[0]
     return products
 
 
