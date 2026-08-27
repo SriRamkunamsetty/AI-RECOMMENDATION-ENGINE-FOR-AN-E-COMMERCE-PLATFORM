@@ -71,6 +71,8 @@ class ProductsState(UserState):
                 print(f"Firebase search sync failed: {exc}")
 
     def load_search_from_firebase(self):
+        # Reset first so account switches cannot retain the previous user’s query.
+        self.search_query = ""
         if self.logged_in and self.firebase_uid:
             try:
                 history = (
