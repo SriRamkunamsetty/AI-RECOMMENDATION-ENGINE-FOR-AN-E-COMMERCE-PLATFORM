@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-from backend.data_utils import canonical_products, load_interactions
+from backend.data_utils import canonical_products, format_price, load_interactions, price_for_product
 
 
 def get_collaborative_recommendations(
@@ -44,7 +44,7 @@ def get_collaborative_recommendations(
     result = catalog.reindex(predictions.index).dropna(how="all").reset_index()
     result["Predicted Rating"] = result["ProdID"].map(predictions)
     result["Price"] = result["ProdID"].map(
-        lambda product_id: f"{(int(product_id) % 2500) + 499}.00"
+        lambda product_id: format_price(price_for_product(product_id))
     )
     return result
 

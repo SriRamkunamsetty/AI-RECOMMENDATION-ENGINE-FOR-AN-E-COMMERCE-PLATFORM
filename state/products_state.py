@@ -24,7 +24,7 @@ class ProductsState(UserState):
             if self.search_query:
                 query = self.search_query.strip()
                 mask = False
-                for column in ("Brand", "Category", "Description", "Name"):
+                for column in ("Brand", "Category", "Description", "Name", "Tags"):
                     if column in products.columns:
                         mask = mask | products[column].str.contains(query, case=False, na=False, regex=False)
                 products = products[mask]

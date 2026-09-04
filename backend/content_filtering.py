@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from backend.data_utils import canonical_products, load_interactions
+from backend.data_utils import canonical_products, format_price, load_interactions, price_for_product
 
 
 def _text_frame(data: pd.DataFrame) -> pd.DataFrame:
@@ -38,7 +38,7 @@ def get_content_based_recommendations(
     candidates = pd.Series(scores, index=products.index).drop(index).sort_values(ascending=False)
     result = products.loc[candidates.head(max(0, int(top_n))).index].drop(columns=["SearchText"])
     result["Price"] = result["ProdID"].map(
-        lambda value: f"{(int(value) % 2500) + 499}.00"
+        lambda value: format_price(price_for_product(value))
     )
     return result.reset_index(drop=True)
 
@@ -64,7 +64,7 @@ def get_content_based_search_recommendations(
     indices = indices[indices > 0].sort_values(ascending=False).head(max(0, int(top_n)))
     result = products.loc[indices.index].drop(columns=["SearchText"])
     result["Price"] = result["ProdID"].map(
-        lambda value: f"{(int(value) % 2500) + 499}.00"
+        lambda value: format_price(price_for_product(value))
     )
     return result.reset_index(drop=True)
 

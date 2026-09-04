@@ -48,9 +48,18 @@ class DataAndRecommendationTests(unittest.TestCase):
         self.assertEqual(price_for_product(2500), 499.0)
 
     def test_recommendation_returns_dataframe_for_unknown_user(self):
-        result = get_combined_recommendations(user_id=999999999, is_new_user=False, top_n=3)
+        result = get_combined_recommendations(
+            user_id=999999999, is_new_user=False, top_n=3, fallback_on_empty=False
+        )
         self.assertIsInstance(result, pd.DataFrame)
         self.assertTrue(result.empty)
+
+    def test_recommendation_falls_back_to_rating_based_for_unknown_user(self):
+        result = get_combined_recommendations(
+            user_id=999999999, is_new_user=False, top_n=3, fallback_on_empty=True
+        )
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
 
     def test_canonical_products_handles_missing_optional_metadata(self):
         products = canonical_products(pd.DataFrame({"ProdID": [1, 1], "Name": ["Example", "Example"]}))
@@ -81,14 +90,21 @@ class CartAndCheckoutTests(unittest.TestCase):
             "",
         )
 
+    def test_cart_handles_prices_above_one_thousand_with_commas(self):
+        items, subtotal = calculate_cart_totals(
+            [
+                {"ProdID": 1500, "Price": "1,500.00", "quantity": 2},
+                {"ProdID": 2000, "Price": "2,499.00", "quantity": 1},
+            ]
+        )
+        self.assertEqual(items[0]["line_total"], "3,000.00")
+        self.assertEqual(items[1]["line_total"], "2,499.00")
+        self.assertEqual(subtotal, 5499.0)
+
     def test_search_query_can_be_encoded_as_a_query_parameter(self):
         query = "red & blue"
         url = "/?q=" + __import__("urllib.parse", fromlist=["quote_plus"]).quote_plus(query)
         self.assertEqual(parse_qs(urlparse(url).query)["q"], [query])
-
-
-if __name__ == "__main__":
-    unittest.main()
 
 
 class SessionSafetyTests(unittest.TestCase):
@@ -124,3 +140,13 @@ class SearchSessionTests(unittest.TestCase):
         source = (Path(__file__).parents[1] / "state" / "products_state.py").read_text()
         method = source.split("    def load_search_from_firebase", 1)[1].split("    def ", 1)[0]
         self.assertLess(method.index('self.search_query = ""'), method.index("if self.logged_in"))
+
+
+class SearchTagTests(unittest.TestCase):
+    def test_search_columns_include_tags(self):
+        source = (Path(__file__).parents[1] / "state" / "products_state.py").read_text()
+        self.assertIn('"Tags"', source)
+
+
+if __name__ == "__main__":
+    unittest.main()

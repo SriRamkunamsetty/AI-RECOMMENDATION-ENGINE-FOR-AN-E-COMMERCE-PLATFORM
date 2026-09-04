@@ -29,6 +29,7 @@ def get_combined_recommendations(
     search_query: str | None = None,
     top_n: int = 5,
     data_path: str | None = None,
+    fallback_on_empty: bool = True,
 ) -> pd.DataFrame:
     """Combine cold-start, collaborative, content, and search recommendations."""
     if is_new_user or user_id is None:
@@ -51,7 +52,10 @@ def get_combined_recommendations(
         if search_query
         else pd.DataFrame()
     )
-    return _combine(search, content, collaborative, top_n=top_n)
+    combined = _combine(search, content, collaborative, top_n=top_n)
+    if combined.empty and fallback_on_empty:
+        return get_rating_based_recommendations(top_n=top_n, min_reviews=2, data_path=data_path)
+    return combined
 
 
 if __name__ == "__main__":
