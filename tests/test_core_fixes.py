@@ -6,10 +6,19 @@ from urllib.parse import parse_qs, urlparse
 import pandas as pd
 
 from backend.cleaning_data import clean_dataset
-from backend.data_utils import CORRUPTED_ID, canonical_products, load_interactions, price_for_product
+from backend.collaborative_filtering import get_svd_collaborative_recommendations
+from backend.content_filtering import clear_tfidf_cache, get_content_based_recommendations
+from backend.data_utils import (
+    CORRUPTED_ID,
+    canonical_products,
+    clear_data_cache,
+    load_interactions,
+    price_for_product,
+)
 from backend.recommender import get_combined_recommendations
 from state.cart_state import calculate_cart_totals
 from state.orders_state import validate_shipping_details
+from state.user_state import UserState
 
 
 class DataAndRecommendationTests(unittest.TestCase):
@@ -146,6 +155,54 @@ class SearchTagTests(unittest.TestCase):
     def test_search_columns_include_tags(self):
         source = (Path(__file__).parents[1] / "state" / "products_state.py").read_text()
         self.assertIn('"Tags"', source)
+
+
+class PerformanceAndCachingTests(unittest.TestCase):
+    def test_interactions_cache_and_clear(self):
+        clear_data_cache()
+        data1 = load_interactions()
+        data2 = load_interactions()
+        self.assertTrue(data1.equals(data2))
+        clear_data_cache()
+        data3 = load_interactions(use_cache=False)
+        self.assertEqual(len(data1), len(data3))
+
+    def test_tfidf_cache_and_clear(self):
+        clear_tfidf_cache()
+        rec1 = get_content_based_recommendations(product_id=2, top_n=3)
+        rec2 = get_content_based_recommendations(product_id=2, top_n=3)
+        self.assertEqual(len(rec1), len(rec2))
+        clear_tfidf_cache()
+
+
+class SVDCollaborativeFilteringTests(unittest.TestCase):
+    def test_svd_recommendations_for_existing_user(self):
+        result = get_svd_collaborative_recommendations(user_id=1705, top_n=4)
+        self.assertIsInstance(result, pd.DataFrame)
+        if not result.empty:
+            self.assertIn("ProdID", result.columns)
+            self.assertIn("Predicted Rating", result.columns)
+            self.assertIn("Price", result.columns)
+
+    def test_recommender_integrates_svd_flag(self):
+        result = get_combined_recommendations(user_id=1705, top_n=4, use_svd=True)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+
+
+class UIAndAuthSafetyTests(unittest.TestCase):
+    def test_login_page_has_no_duplicate_inputs_outside_tabs(self):
+        login_source = (Path(__file__).parents[1] / "pages" / "login.py").read_text()
+        self.assertNotIn('placeholder="name@example.com"', login_source.split("rx.tabs.root(")[0])
+
+    def test_profile_page_includes_navbar(self):
+        profile_source = (Path(__file__).parents[1] / "pages" / "profile.py").read_text()
+        self.assertIn("navbar()", profile_source)
+
+    def test_firebase_configured_helper(self):
+        # When unconfigured or dummy, returns boolean without crashing or instantiating state
+        is_conf = UserState._is_firebase_configured()
+        self.assertIsInstance(is_conf, bool)
 
 
 if __name__ == "__main__":

@@ -19,24 +19,45 @@ def _text_frame(data: pd.DataFrame) -> pd.DataFrame:
     return products
 
 
+_TFIDF_CACHE: dict[int, tuple[TfidfVectorizer, object, pd.DataFrame]] = {}
+
+
+def clear_tfidf_cache() -> None:
+    """Clear the cached TF-IDF vectors."""
+    _TFIDF_CACHE.clear()
+
+
+def _get_catalog_tfidf(data_path: str | None = None) -> tuple[TfidfVectorizer, object, pd.DataFrame]:
+    data = load_interactions(data_path)
+    products = _text_frame(data)
+    cache_key = len(products)
+    if cache_key in _TFIDF_CACHE:
+        cached_vec, cached_mat, cached_df = _TFIDF_CACHE[cache_key]
+        if list(cached_df["ProdID"]) == list(products["ProdID"]):
+            return cached_vec, cached_mat, cached_df
+
+    vectorizer = TfidfVectorizer(stop_words="english")
+    matrix = vectorizer.fit_transform(products["SearchText"])
+    _TFIDF_CACHE[cache_key] = (vectorizer, matrix, products)
+    return vectorizer, matrix, products
+
+
 def get_content_based_recommendations(
     product_id: int,
     top_n: int = 10,
     data_path: str | None = None,
 ) -> pd.DataFrame:
     """Return products with text features most similar to ``product_id``."""
-    products = _text_frame(load_interactions(data_path))
+    vectorizer, matrix, products = _get_catalog_tfidf(data_path)
     if product_id not in products["ProdID"].values:
         return pd.DataFrame()
     if not products["SearchText"].str.strip().any():
         return pd.DataFrame()
 
-    vectorizer = TfidfVectorizer(stop_words="english")
-    matrix = vectorizer.fit_transform(products["SearchText"])
     index = products.index[products["ProdID"] == product_id][0]
     scores = cosine_similarity(matrix[index], matrix).ravel()
     candidates = pd.Series(scores, index=products.index).drop(index).sort_values(ascending=False)
-    result = products.loc[candidates.head(max(0, int(top_n))).index].drop(columns=["SearchText"])
+    result = products.loc[candidates.head(max(0, int(top_n))).index].drop(columns=["SearchText"]).copy()
     result["Price"] = result["ProdID"].map(
         lambda value: format_price(price_for_product(value))
     )
@@ -52,17 +73,15 @@ def get_content_based_search_recommendations(
     query = str(search_query or "").strip()
     if not query:
         return pd.DataFrame()
-    products = _text_frame(load_interactions(data_path))
+    vectorizer, matrix, products = _get_catalog_tfidf(data_path)
     if not products["SearchText"].str.strip().any():
         return pd.DataFrame()
 
-    vectorizer = TfidfVectorizer(stop_words="english")
-    documents = products["SearchText"].tolist() + [query]
-    matrix = vectorizer.fit_transform(documents)
-    scores = cosine_similarity(matrix[-1], matrix[:-1]).ravel()
+    query_vec = vectorizer.transform([query])
+    scores = cosine_similarity(query_vec, matrix).ravel()
     indices = pd.Series(scores, index=products.index)
     indices = indices[indices > 0].sort_values(ascending=False).head(max(0, int(top_n)))
-    result = products.loc[indices.index].drop(columns=["SearchText"])
+    result = products.loc[indices.index].drop(columns=["SearchText"]).copy()
     result["Price"] = result["ProdID"].map(
         lambda value: format_price(price_for_product(value))
     )

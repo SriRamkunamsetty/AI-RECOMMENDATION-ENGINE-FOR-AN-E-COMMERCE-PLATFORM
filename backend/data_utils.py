@@ -18,9 +18,21 @@ def resolve_data_path(data_path: str | Path | None = None) -> Path:
     return Path(data_path) if data_path is not None else Path(DATA_PATH)
 
 
-def load_interactions(data_path: str | Path | None = None) -> pd.DataFrame:
+_DATA_CACHE: dict[str, pd.DataFrame] = {}
+
+
+def clear_data_cache() -> None:
+    """Clear the in-memory catalog cache."""
+    _DATA_CACHE.clear()
+
+
+def load_interactions(data_path: str | Path | None = None, use_cache: bool = True) -> pd.DataFrame:
     """Load and validate interaction data, removing known corrupt identifiers."""
     path = resolve_data_path(data_path)
+    cache_key = str(path.resolve())
+    if use_cache and cache_key in _DATA_CACHE:
+        return _DATA_CACHE[cache_key].copy()
+
     if not path.exists():
         raise FileNotFoundError(f"Catalog dataset not found: {path}")
 
@@ -41,6 +53,8 @@ def load_interactions(data_path: str | Path | None = None) -> pd.DataFrame:
     for column in PRODUCT_TEXT_COLUMNS:
         if column in data.columns:
             data[column] = data[column].fillna("").astype(str)
+    if use_cache:
+        _DATA_CACHE[cache_key] = data.copy()
     return data
 
 

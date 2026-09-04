@@ -37,7 +37,12 @@ def product_card(product: dict, allow_remove: bool = False) -> rx.Component:
                 margin_top="0.5rem",
             ),
             rx.hstack(
-                rx.text(f"★ {product.get('Rating', 'N/A')}", font_size="sm", color="#B59288"),
+                rx.text(
+                    "★ ",
+                    rx.cond(product.contains("Rating"), product["Rating"], "N/A"),
+                    font_size="sm",
+                    color="#B59288",
+                ),
                 rx.spacer(),
                 rx.text("₹", price, font_weight="bold", color="#6F3E3F"),
                 width="100%",

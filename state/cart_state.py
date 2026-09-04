@@ -72,7 +72,7 @@ class CartState(UserState):
         self.sync_to_firebase()
 
     def sync_to_firebase(self):
-        if self.logged_in and self.firebase_uid:
+        if self._is_firebase_configured() and self.logged_in and self.firebase_uid:
             try:
                 self._get_firebase().database().child("users").child(self.firebase_uid).child(
                     "cart"
@@ -81,7 +81,7 @@ class CartState(UserState):
                 print(f"Firebase cart sync failed: {exc}")
 
     def load_from_firebase(self):
-        if self.logged_in and self.firebase_uid:
+        if self._is_firebase_configured() and self.logged_in and self.firebase_uid:
             try:
                 value = (
                     self._get_firebase()

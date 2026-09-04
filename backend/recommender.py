@@ -7,7 +7,10 @@ from backend.content_filtering import (
     get_content_based_search_recommendations,
 )
 from backend.rating_based import get_rating_based_recommendations
-from backend.collaborative_filtering import get_collaborative_recommendations
+from backend.collaborative_filtering import (
+    get_collaborative_recommendations,
+    get_svd_collaborative_recommendations,
+)
 
 
 def _combine(*frames: pd.DataFrame, top_n: int) -> pd.DataFrame:
@@ -30,14 +33,24 @@ def get_combined_recommendations(
     top_n: int = 5,
     data_path: str | None = None,
     fallback_on_empty: bool = True,
+    use_svd: bool = False,
 ) -> pd.DataFrame:
     """Combine cold-start, collaborative, content, and search recommendations."""
     if is_new_user or user_id is None:
         return get_rating_based_recommendations(top_n=top_n, min_reviews=2, data_path=data_path)
 
-    collaborative = get_collaborative_recommendations(
-        user_id=user_id, top_n=top_n, data_path=data_path
-    )
+    if use_svd:
+        collaborative = get_svd_collaborative_recommendations(
+            user_id=user_id, top_n=top_n, data_path=data_path
+        )
+        if collaborative.empty:
+            collaborative = get_collaborative_recommendations(
+                user_id=user_id, top_n=top_n, data_path=data_path
+            )
+    else:
+        collaborative = get_collaborative_recommendations(
+            user_id=user_id, top_n=top_n, data_path=data_path
+        )
     content = (
         get_content_based_recommendations(
             product_id=current_product_id, top_n=top_n, data_path=data_path

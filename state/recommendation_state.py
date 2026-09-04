@@ -30,6 +30,7 @@ class RecommendationState(UserState):
                 current_product_id=current_product_id,
                 search_query=products_state.search_query,
                 top_n=20,
+                use_svd=True,
             )
             if isinstance(recs_df, pd.DataFrame) and not recs_df.empty:
                 recs_df = recs_df.sample(frac=1).reset_index(drop=True).head(8).fillna("")
