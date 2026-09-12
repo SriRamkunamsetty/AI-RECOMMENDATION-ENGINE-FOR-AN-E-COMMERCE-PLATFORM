@@ -30,6 +30,7 @@ class RecommendationState(UserState):
                 current_product_id=current_product_id,
                 search_query=products_state.search_query,
                 top_n=20,
+                use_svd=True,
             )
             if isinstance(recs_df, pd.DataFrame) and not recs_df.empty:
                 recs_df = recs_df.sample(frac=1).reset_index(drop=True).head(8).fillna("")
@@ -43,6 +44,10 @@ class RecommendationState(UserState):
                     recs_df["Rating"] = recs_df["Rating"].map(
                         lambda value: f"{float(value):.1f}" if str(value).strip() else "N/A"
                     )
+                if "Explanation" not in recs_df.columns:
+                    recs_df["Explanation"] = ""
+                else:
+                    recs_df["Explanation"] = recs_df["Explanation"].fillna("").astype(str)
                 self.recommendations = recs_df.to_dict("records")
             else:
                 self.recommendations = []

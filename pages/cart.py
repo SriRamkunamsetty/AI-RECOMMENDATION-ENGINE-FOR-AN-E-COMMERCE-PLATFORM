@@ -37,7 +37,7 @@ def cart_item_row(item: dict) -> rx.Component:
     )
 
 
-@rx.page(route="/cart", title="Shopping Cart")
+@rx.page(route="/cart", title="Shopping Cart", on_load=CartState.load_from_firebase)
 def cart() -> rx.Component:
     return rx.box(
         navbar(),

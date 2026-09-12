@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from backend.data_utils import canonical_products, load_interactions
+from backend.data_utils import canonical_products, format_price, load_interactions, price_for_product
 
 
 def get_rating_based_recommendations(
@@ -28,14 +28,16 @@ def get_rating_based_recommendations(
     product_stats = product_stats[product_stats["Rating_Count"] >= max(0, int(min_reviews))]
 
     catalog = canonical_products(data).set_index("ProdID")
-    product_stats = product_stats.join(catalog, how="left")
+    catalog_metadata = catalog.drop(columns=["Rating"], errors="ignore")
+    product_stats = product_stats.join(catalog_metadata, how="left")
     sorted_products = product_stats.sort_values(
         by=["Rating", "Rating_Count"], ascending=[False, False]
     ).head(max(0, int(top_n))).reset_index()
     sorted_products["Rating Count"] = sorted_products.pop("Rating_Count")
     sorted_products["Price"] = sorted_products["ProdID"].map(
-        lambda product_id: f"{(int(product_id) % 2500) + 499}.00"
+        lambda product_id: format_price(price_for_product(product_id))
     )
+    sorted_products["Explanation"] = "Top-rated trending bestseller"
     return sorted_products
 
 

@@ -24,7 +24,7 @@ class ProductsState(UserState):
             if self.search_query:
                 query = self.search_query.strip()
                 mask = False
-                for column in ("Brand", "Category", "Description", "Name"):
+                for column in ("Brand", "Category", "Description", "Name", "Tags"):
                     if column in products.columns:
                         mask = mask | products[column].str.contains(query, case=False, na=False, regex=False)
                 products = products[mask]
@@ -62,7 +62,7 @@ class ProductsState(UserState):
         return rx.redirect(f"/?q={quote_plus(query)}")
 
     def sync_search_to_firebase(self, query: str):
-        if self.logged_in and self.firebase_uid and query.strip():
+        if self._is_firebase_configured() and self.logged_in and self.firebase_uid and query.strip():
             try:
                 self._get_firebase().database().child("users").child(self.firebase_uid).child(
                     "search_history"
@@ -73,7 +73,7 @@ class ProductsState(UserState):
     def load_search_from_firebase(self):
         # Reset first so account switches cannot retain the previous user’s query.
         self.search_query = ""
-        if self.logged_in and self.firebase_uid:
+        if self.logged_in and self.firebase_uid and self._is_firebase_configured():
             try:
                 history = (
                     self._get_firebase()
