@@ -32,9 +32,24 @@ def product_card(product: dict, allow_remove: bool = False) -> rx.Component:
                 fallback="https://via.placeholder.com/150",
             ),
             rx.box(
+                rx.cond(
+                    product.contains("Explanation"),
+                    rx.cond(
+                        product["Explanation"] != "",
+                        rx.badge(
+                            rx.icon("sparkles", size=12),
+                            product["Explanation"],
+                            color_scheme="ruby",
+                            variant="surface",
+                            size="1",
+                            margin_bottom="0.25rem",
+                        ),
+                    ),
+                ),
                 rx.text(display_name, font_weight="bold", font_size="md", no_of_lines=1),
                 rx.text(description, color="gray", font_size="xs", no_of_lines=2),
                 margin_top="0.5rem",
+                width="100%",
             ),
             rx.hstack(
                 rx.text(

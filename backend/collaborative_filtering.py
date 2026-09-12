@@ -47,6 +47,7 @@ def get_collaborative_recommendations(
     result["Price"] = result["ProdID"].map(
         lambda product_id: format_price(price_for_product(product_id))
     )
+    result["Explanation"] = "Recommended by shoppers with similar taste"
     return result
 
 
@@ -90,6 +91,7 @@ def get_svd_collaborative_recommendations(
     result["Price"] = result["ProdID"].map(
         lambda product_id: format_price(price_for_product(product_id))
     )
+    result["Explanation"] = "Personalized match based on your taste profile"
     return result
 
 

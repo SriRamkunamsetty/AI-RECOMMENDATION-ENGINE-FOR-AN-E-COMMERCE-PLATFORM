@@ -61,6 +61,7 @@ def get_content_based_recommendations(
     result["Price"] = result["ProdID"].map(
         lambda value: format_price(price_for_product(value))
     )
+    result["Explanation"] = "Similar to items you recently viewed"
     return result.reset_index(drop=True)
 
 
@@ -85,6 +86,7 @@ def get_content_based_search_recommendations(
     result["Price"] = result["ProdID"].map(
         lambda value: format_price(price_for_product(value))
     )
+    result["Explanation"] = f"Relevant match for '{query}'"
     return result.reset_index(drop=True)
 
 

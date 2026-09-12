@@ -44,6 +44,10 @@ class RecommendationState(UserState):
                     recs_df["Rating"] = recs_df["Rating"].map(
                         lambda value: f"{float(value):.1f}" if str(value).strip() else "N/A"
                     )
+                if "Explanation" not in recs_df.columns:
+                    recs_df["Explanation"] = ""
+                else:
+                    recs_df["Explanation"] = recs_df["Explanation"].fillna("").astype(str)
                 self.recommendations = recs_df.to_dict("records")
             else:
                 self.recommendations = []

@@ -68,6 +68,8 @@ def get_combined_recommendations(
     combined = _combine(search, content, collaborative, top_n=top_n)
     if combined.empty and fallback_on_empty:
         return get_rating_based_recommendations(top_n=top_n, min_reviews=2, data_path=data_path)
+    if not combined.empty and "Explanation" in combined.columns:
+        combined["Explanation"] = combined["Explanation"].fillna("Recommended for you")
     return combined
 
 

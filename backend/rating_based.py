@@ -37,6 +37,7 @@ def get_rating_based_recommendations(
     sorted_products["Price"] = sorted_products["ProdID"].map(
         lambda product_id: format_price(price_for_product(product_id))
     )
+    sorted_products["Explanation"] = "Top-rated trending bestseller"
     return sorted_products
 
 

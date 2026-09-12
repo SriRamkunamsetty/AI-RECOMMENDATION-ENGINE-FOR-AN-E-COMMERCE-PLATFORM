@@ -6,7 +6,10 @@ from urllib.parse import parse_qs, urlparse
 import pandas as pd
 
 from backend.cleaning_data import clean_dataset
-from backend.collaborative_filtering import get_svd_collaborative_recommendations
+from backend.collaborative_filtering import (
+    get_collaborative_recommendations,
+    get_svd_collaborative_recommendations,
+)
 from backend.content_filtering import clear_tfidf_cache, get_content_based_recommendations
 from backend.data_utils import (
     CORRUPTED_ID,
@@ -15,6 +18,18 @@ from backend.data_utils import (
     load_interactions,
     price_for_product,
 )
+from backend.evaluation import (
+    compute_catalog_coverage,
+    compute_hit_rate_at_k,
+    compute_map_at_k,
+    compute_mrr,
+    compute_ndcg_at_k,
+    compute_precision_recall_at_k,
+    compute_rmse_mae,
+    evaluate_model,
+    train_test_split_interactions,
+)
+from backend.rating_based import get_rating_based_recommendations
 from backend.recommender import get_combined_recommendations
 from state.cart_state import calculate_cart_totals
 from state.orders_state import validate_shipping_details
@@ -203,6 +218,109 @@ class UIAndAuthSafetyTests(unittest.TestCase):
         # When unconfigured or dummy, returns boolean without crashing or instantiating state
         is_conf = UserState._is_firebase_configured()
         self.assertIsInstance(is_conf, bool)
+
+
+class EvaluationSuiteTests(unittest.TestCase):
+    def test_train_test_split_interactions(self):
+        data = load_interactions()
+        train_df, test_df = train_test_split_interactions(
+            data, test_ratio=0.2, min_interactions=2, random_state=42
+        )
+        self.assertGreater(len(train_df), 0)
+        self.assertGreater(len(test_df), 0)
+        self.assertEqual(len(train_df) + len(test_df), len(data))
+        # Users in test must have interactions remaining in train
+        train_users = set(train_df["User's ID"].unique())
+        test_users = set(test_df["User's ID"].unique())
+        self.assertTrue(test_users.issubset(train_users))
+
+    def test_metric_calculations(self):
+        # NDCG@5
+        ndcg_hit = compute_ndcg_at_k(actual=[1, 2], predicted=[1, 3, 2, 4, 5], k=5)
+        ndcg_miss = compute_ndcg_at_k(actual=[9], predicted=[1, 2, 3], k=5)
+        self.assertGreater(ndcg_hit, 0.0)
+        self.assertLessEqual(ndcg_hit, 1.0)
+        self.assertEqual(ndcg_miss, 0.0)
+
+        # Precision and Recall
+        prec, rec = compute_precision_recall_at_k(actual=[1, 2], predicted=[1, 3, 4, 5, 6], k=5)
+        self.assertAlmostEqual(prec, 0.2)
+        self.assertAlmostEqual(rec, 0.5)
+
+        # Hit Rate
+        self.assertEqual(compute_hit_rate_at_k(actual=[1], predicted=[1, 2, 3], k=3), 1.0)
+        self.assertEqual(compute_hit_rate_at_k(actual=[99], predicted=[1, 2, 3], k=3), 0.0)
+
+        # MRR
+        self.assertAlmostEqual(compute_mrr(actual=[3], predicted=[1, 2, 3, 4]), 1.0 / 3.0)
+
+        # MAP
+        map_val = compute_map_at_k(actual=[1, 3], predicted=[1, 2, 3, 4], k=4)
+        self.assertGreater(map_val, 0.0)
+
+        # RMSE and MAE
+        rmse, mae = compute_rmse_mae(actual=[4.0, 5.0], predicted=[3.0, 5.0])
+        self.assertAlmostEqual(rmse, (0.5 ** 0.5))
+        self.assertAlmostEqual(mae, 0.5)
+
+        # Catalog Coverage
+        coverage = compute_catalog_coverage([[1, 2], [2, 3]], total_catalog_count=10)
+        self.assertAlmostEqual(coverage, 0.3)
+
+    def test_evaluate_single_model(self):
+        train_data = pd.DataFrame({
+            "User's ID": [1, 1, 2, 2],
+            "ProdID": [10, 20, 10, 30],
+            "Rating": [5, 4, 3, 5],
+        })
+        test_data = pd.DataFrame({
+            "User's ID": [1, 2],
+            "ProdID": [20, 30],
+            "Rating": [4, 5],
+        })
+        metrics = evaluate_model(
+            recommend_func=lambda uid, k, df: [10, 20, 30][:k],
+            test_data=test_data,
+            train_data=train_data,
+            k=2,
+        )
+        self.assertIn("NDCG@2", metrics)
+        self.assertIn("Precision@2", metrics)
+        self.assertIn("Catalog_Coverage", metrics)
+        self.assertGreater(metrics["Hit_Rate@2"], 0.0)
+
+
+class ExplainableAITests(unittest.TestCase):
+    def test_recommenders_produce_explanations(self):
+        # Combined recommender
+        rec_combined = get_combined_recommendations(user_id=1705, top_n=3, use_svd=True)
+        self.assertIn("Explanation", rec_combined.columns)
+        self.assertTrue((rec_combined["Explanation"].str.len() > 0).all())
+
+        # Rating-based recommender
+        rec_rating = get_rating_based_recommendations(top_n=3)
+        self.assertIn("Explanation", rec_rating.columns)
+        self.assertEqual(rec_rating.iloc[0]["Explanation"], "Top-rated trending bestseller")
+
+        # Collaborative recommender
+        rec_collab = get_collaborative_recommendations(user_id=1705, top_n=3)
+        if not rec_collab.empty:
+            self.assertIn("Explanation", rec_collab.columns)
+
+        # SVD recommender
+        rec_svd = get_svd_collaborative_recommendations(user_id=1705, top_n=3)
+        if not rec_svd.empty:
+            self.assertIn("Explanation", rec_svd.columns)
+
+        # Content recommender
+        rec_content = get_content_based_recommendations(product_id=2, top_n=3)
+        if not rec_content.empty:
+            self.assertIn("Explanation", rec_content.columns)
+
+    def test_product_card_renders_explanation_badge(self):
+        source = (Path(__file__).parents[1] / "components" / "product_card.py").read_text()
+        self.assertIn('"Explanation"', source)
+        self.assertIn('"sparkles"', source)
 
 
 if __name__ == "__main__":
