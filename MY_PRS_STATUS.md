@@ -9,9 +9,9 @@
 
 ---
 
-## 📊 Summary Table of All Pull Requests
+## 📊 Summary Table of All Pull Requests & Status
 
-| PR # | Title / Focus Area | Status | Date & Time (UTC / IST) | Solves | Review / CI Activity |
+| PR # | Title / Focus Area | Current Status | Date & Time (UTC / IST) | Solves | Review / CI Activity |
 | :---: | :--- | :---: | :--- | :---: | :--- |
 | **[#6](https://github.com/SriRamkunamsetty/AI-RECOMMENDATION-ENGINE-FOR-AN-E-COMMERCE-PLATFORM/pull/6)** | Recommendation Data Pipeline & Pricing | 🟢 **OPEN** | 2026-08-24 11:08:40 UTC<br>(04:38:40 PM IST) | [Issue #1](https://github.com/SriRamkunamsetty/AI-RECOMMENDATION-ENGINE-FOR-AN-E-COMMERCE-PLATFORM/issues/1) | Clean / Mergeable |
 | **[#7](https://github.com/SriRamkunamsetty/AI-RECOMMENDATION-ENGINE-FOR-AN-E-COMMERCE-PLATFORM/pull/7)** | User Identity & Wishlist Persistence | 🟢 **OPEN** | 2026-08-24 11:08:51 UTC<br>(04:38:51 PM IST) | [Issue #2](https://github.com/SriRamkunamsetty/AI-RECOMMENDATION-ENGINE-FOR-AN-E-COMMERCE-PLATFORM/issues/2) | Clean / Mergeable |
@@ -27,7 +27,7 @@
 
 ---
 
-## 📝 Detailed Pull Request Entries
+## 📝 Detailed Pull Request Entries (Copy-Paste Ready for IEEE Discord)
 
 ### 1. PR #6
 • 🔗 **Pull Request Number & Link:** #6 - https://github.com/SriRamkunamsetty/AI-RECOMMENDATION-ENGINE-FOR-AN-E-COMMERCE-PLATFORM/pull/6  
