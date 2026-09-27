@@ -29,8 +29,11 @@ from backend.evaluation import (
     evaluate_model,
     train_test_split_interactions,
 )
+from backend.association_rules import get_frequently_bought_together, mine_product_associations
 from backend.rating_based import get_rating_based_recommendations
-from backend.recommender import get_combined_recommendations
+from backend.recommender import get_combined_recommendations, reciprocal_rank_fusion
+from components.chatbot import _generate_offline_assistant_response
+from pages.analytics import AnalyticsState, MODELS_BENCHMARK_DATA
 from state.cart_state import calculate_cart_totals
 from state.orders_state import validate_shipping_details
 from state.user_state import UserState
@@ -321,6 +324,83 @@ class ExplainableAITests(unittest.TestCase):
         source = (Path(__file__).parents[1] / "components" / "product_card.py").read_text()
         self.assertIn('"Explanation"', source)
         self.assertIn('"sparkles"', source)
+
+
+class ChatbotOfflineTests(unittest.TestCase):
+    def test_offline_response_for_greetings(self):
+        response = _generate_offline_assistant_response("hello")
+        self.assertIn("AI Shopping Assistant", response)
+
+    def test_offline_response_for_bestsellers(self):
+        response = _generate_offline_assistant_response("show me bestsellers")
+        self.assertIn("Top-Rated Bestsellers", response)
+        self.assertIn("/product/", response)
+
+    def test_offline_response_for_search_keyword(self):
+        response = _generate_offline_assistant_response("hair care")
+        self.assertIn("/product/", response)
+
+
+class AssociationRulesTests(unittest.TestCase):
+    def test_mine_product_associations_structure(self):
+        rules = mine_product_associations()
+        self.assertIsInstance(rules, pd.DataFrame)
+        if not rules.empty:
+            for col in ("Item_A", "Item_B", "Support", "Confidence", "Lift"):
+                self.assertIn(col, rules.columns)
+
+    def test_frequently_bought_together_returns_items(self):
+        bundle = get_frequently_bought_together(product_id=2, top_n=2)
+        self.assertIsInstance(bundle, list)
+        if bundle:
+            first = bundle[0]
+            self.assertIn("ProdID", first)
+            self.assertIn("Price", first)
+            self.assertIn("Explanation", first)
+
+
+class ReciprocalRankFusionTests(unittest.TestCase):
+    def test_rrf_scoring_and_ranking(self):
+        df1 = pd.DataFrame({"ProdID": [10, 20], "Explanation": ["A", "B"]})
+        df2 = pd.DataFrame({"ProdID": [20, 30], "Explanation": ["C", "D"]})
+        combined = reciprocal_rank_fusion([(df1, 1.0), (df2, 1.0)], k0=60, top_n=3)
+        self.assertIsInstance(combined, pd.DataFrame)
+        self.assertIn("RRF_Score", combined.columns)
+        # ProdID 20 appears in both lists, so its RRF score should be highest
+        self.assertEqual(combined.iloc[0]["ProdID"], 20)
+
+    def test_recommender_integrates_rrf(self):
+        recs = get_combined_recommendations(user_id=1705, top_n=4, use_rrf=True)
+        self.assertIsInstance(recs, pd.DataFrame)
+        self.assertFalse(recs.empty)
+        self.assertIn("Explanation", recs.columns)
+
+
+class AnalyticsAndApiTests(unittest.TestCase):
+    def test_analytics_state_has_models(self):
+        self.assertEqual(AnalyticsState.__name__, "AnalyticsState")
+        models = MODELS_BENCHMARK_DATA
+        self.assertGreaterEqual(len(models), 4)
+        names = [m["name"] for m in models]
+        self.assertTrue(any("Reciprocal Rank Fusion" in name for name in names))
+
+    def test_navbar_contains_analytics_link(self):
+        source = (Path(__file__).parents[1] / "components" / "navbar.py").read_text()
+        self.assertIn('href="/analytics"', source)
+
+    def test_product_detail_contains_bundle_component(self):
+        source = (Path(__file__).parents[1] / "pages" / "product_detail.py").read_text()
+        self.assertIn("Frequently Bought Together", source)
+        self.assertIn("Add Bundle to Cart", source)
+
+    def test_api_routes_configured(self):
+        from backend.api import api_app
+        routes = [r.path for r in api_app.routes]
+        self.assertIn("/api/v1/health", routes)
+        self.assertIn("/api/v1/recommend", routes)
+        self.assertIn("/api/v1/similar/{product_id:int}", routes)
+        self.assertIn("/api/v1/basket/{product_id:int}", routes)
+        self.assertIn("/docs", routes)
 
 
 if __name__ == "__main__":

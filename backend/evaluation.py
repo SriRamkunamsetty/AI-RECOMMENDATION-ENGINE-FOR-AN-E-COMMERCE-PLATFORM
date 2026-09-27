@@ -238,8 +238,8 @@ def benchmark_all_models(
             recs = get_content_based_recommendations(product_id=last_item, top_n=top_n, data_path=train_path)
             return recs["ProdID"].tolist() if not recs.empty else []
 
-        # 5. Hybrid Recommender
-        def recommend_hybrid(uid: int, top_n: int, df: pd.DataFrame) -> List[int]:
+        # 5. Hybrid (Concatenation)
+        def recommend_hybrid_concat(uid: int, top_n: int, df: pd.DataFrame) -> List[int]:
             user_items = df[df["User's ID"] == uid]["ProdID"].tolist()
             last_item = user_items[-1] if user_items else None
             recs = get_combined_recommendations(
@@ -248,6 +248,21 @@ def benchmark_all_models(
                 top_n=top_n,
                 data_path=train_path,
                 use_svd=True,
+                use_rrf=False,
+            )
+            return recs["ProdID"].tolist() if not recs.empty else []
+
+        # 6. Hybrid (Reciprocal Rank Fusion - RRF)
+        def recommend_hybrid_rrf(uid: int, top_n: int, df: pd.DataFrame) -> List[int]:
+            user_items = df[df["User's ID"] == uid]["ProdID"].tolist()
+            last_item = user_items[-1] if user_items else None
+            recs = get_combined_recommendations(
+                user_id=uid,
+                current_product_id=last_item,
+                top_n=top_n,
+                data_path=train_path,
+                use_svd=True,
+                use_rrf=True,
             )
             return recs["ProdID"].tolist() if not recs.empty else []
 
@@ -256,7 +271,8 @@ def benchmark_all_models(
             "User-User Cosine Collab": recommend_collab,
             "Truncated SVD Latent Factor": recommend_svd,
             "Content-Based (TF-IDF)": recommend_content,
-            "Hybrid Multi-Strategy": recommend_hybrid,
+            "Hybrid (Concatenation)": recommend_hybrid_concat,
+            "Hybrid (Reciprocal Rank Fusion)": recommend_hybrid_rrf,
         }
 
         results: Dict[str, Dict[str, float]] = {}

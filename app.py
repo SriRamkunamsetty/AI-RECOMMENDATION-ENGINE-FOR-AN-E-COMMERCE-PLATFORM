@@ -20,6 +20,7 @@ import pages.checkout
 import pages.payment
 import pages.wishlist
 import pages.orders  # noqa: F401
+import pages.analytics  # noqa: F401
 
 # Create main Reflex App
 app = rx.App(

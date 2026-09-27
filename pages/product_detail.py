@@ -50,12 +50,30 @@ class ProductDetailState(rx.State):
             "Description": "Could not locate this product in the dataset."
         }
 
+    bundle_items: list[dict] = []
+    bundle_total_price: str = "0.00"
+
     def load_product_with_recommendations(self):
-        """Loads product details then auto-fetches recommendations for this product."""
+        """Loads product details, frequently bought together bundle, then recommendations."""
         self.load_product()
         product_id = self.current_product.get("ProdID")
         if product_id and product_id != 999:
+            from backend.association_rules import get_frequently_bought_together
+            from backend.data_utils import format_price, price_for_product
+            associated = get_frequently_bought_together(int(product_id), top_n=1)
+            self.bundle_items = associated
+            if associated:
+                total_val = price_for_product(int(product_id)) + float(associated[0]["Price_Num"])
+                self.bundle_total_price = format_price(total_val)
+            else:
+                self.bundle_total_price = format_price(price_for_product(int(product_id)))
             yield RecommendationState.fetch_recommendations(int(product_id))
+
+    def add_bundle_to_cart(self):
+        """Add both current product and associated bundle complement to cart."""
+        yield CartState.add_to_cart(self.current_product)
+        for item in self.bundle_items:
+            yield CartState.add_to_cart(item)
 
 @rx.page(route="/product/[pid]", title="Product Detail", on_load=ProductDetailState.load_product_with_recommendations)
 def product_detail() -> rx.Component:
@@ -112,7 +130,62 @@ def product_detail() -> rx.Component:
                 align_items="start"
             ),
             
-            rx.divider(margin_top="4rem", margin_bottom="2rem"),
+            rx.cond(
+                ProductDetailState.bundle_items.length() > 0,
+                rx.card(
+                    rx.vstack(
+                        rx.heading("🛒 Frequently Bought Together", size="5", color="#6F3E3F"),
+                        rx.text("Customers who bought this item frequently purchased it together with:", size="2", color="gray"),
+                        rx.hstack(
+                            rx.hstack(
+                                rx.image(src=ProductDetailState.current_product["ImageURL"], height="80px", width="80px", object_fit="cover", border_radius="md"),
+                                rx.text("+", font_weight="bold", size="6", color="#6F3E3F", align_self="center"),
+                                rx.foreach(
+                                    ProductDetailState.bundle_items,
+                                    lambda item: rx.hstack(
+                                        rx.image(src=item["ImageURL"], height="80px", width="80px", object_fit="cover", border_radius="md"),
+                                        rx.vstack(
+                                            rx.link(rx.text(item["Name"], font_weight="bold", size="2", no_of_lines=1), href=f"/product/{item['ProdID']}"),
+                                            rx.text("₹", item["Price"], color="#6F3E3F", font_weight="bold", size="2"),
+                                            rx.badge(item["Explanation"], color_scheme="ruby", variant="soft", size="1"),
+                                            align_items="start",
+                                            spacing="1",
+                                        ),
+                                        spacing="3",
+                                    )
+                                ),
+                                spacing="4",
+                                align_items="center",
+                            ),
+                            rx.spacer(),
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.text("Bundle Total: ", size="3", color="gray"),
+                                    rx.text("₹", ProductDetailState.bundle_total_price, font_weight="bold", size="5", color="#6F3E3F"),
+                                ),
+                                rx.button(
+                                    rx.icon("package-plus", size=16),
+                                    "Add Bundle to Cart",
+                                    background_color="#6F3E3F",
+                                    color="white",
+                                    size="3",
+                                    on_click=ProductDetailState.add_bundle_to_cart,
+                                ),
+                                align_items="end",
+                            ),
+                            width="100%",
+                            align_items="center",
+                        ),
+                        spacing="3",
+                        width="100%",
+                    ),
+                    margin_top="3rem",
+                    margin_bottom="1rem",
+                    width="100%",
+                ),
+            ),
+
+            rx.divider(margin_top="3rem", margin_bottom="2rem"),
             
             rx.vstack(
                 rx.heading("You May Also Like", size="6", margin_bottom="1rem", text_align="center"),
