@@ -77,7 +77,7 @@ class OrderState(UserState):
         self.sync_orders()
 
     def sync_orders(self):
-        if self.logged_in and self.firebase_uid:
+        if self._is_firebase_configured() and self.logged_in and self.firebase_uid:
             try:
                 self._get_firebase().database().child("users").child(self.firebase_uid).child(
                     "orders"
@@ -86,7 +86,7 @@ class OrderState(UserState):
                 print(f"Firebase order sync failed: {exc}")
 
     def load_orders(self):
-        if self.logged_in and self.firebase_uid:
+        if self._is_firebase_configured() and self.logged_in and self.firebase_uid:
             try:
                 value = (
                     self._get_firebase()

@@ -14,9 +14,6 @@ def login() -> rx.Component:
                 
                 rx.card(
                     rx.vstack(
-                        rx.input(placeholder="Email Address", width="100%", size="3", border_radius="full", background_color="#FFFFFF", border="1px solid #E8DCD1", on_change=UserState.set_email),
-                        rx.input(placeholder="Password", type="password", width="100%", size="3", margin_bottom="1rem", border_radius="full", background_color="#FFFFFF", border="1px solid #E8DCD1", on_change=UserState.set_password),
-                        
                         rx.cond(
                             UserState.auth_error != "",
                             rx.text(UserState.auth_error, color="red", size="2", margin_bottom="1rem")

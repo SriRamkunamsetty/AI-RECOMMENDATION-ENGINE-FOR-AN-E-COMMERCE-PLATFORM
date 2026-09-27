@@ -24,7 +24,7 @@ def order_row(order: dict) -> rx.Component:
     )
 
 
-@rx.page(route="/orders", title="Order History")
+@rx.page(route="/orders", title="Order History", on_load=OrderState.load_orders)
 def orders() -> rx.Component:
     return rx.box(
         navbar(),

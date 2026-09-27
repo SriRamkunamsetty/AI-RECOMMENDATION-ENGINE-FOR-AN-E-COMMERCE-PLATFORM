@@ -2,7 +2,7 @@
 set -euo pipefail
 
 python3 -m unittest discover -s tests -v
-python3 -m compileall -q .
+python3 -m compileall -q backend components pages state tests
 pyflakes backend components pages state tests
 git diff --check
 

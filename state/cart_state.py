@@ -14,16 +14,23 @@ def calculate_cart_totals(items: List[Dict[str, Any]]) -> tuple[List[Dict[str, A
     for original in items:
         item = original.copy()
         product_id = item.get("ProdID", 0)
-        try:
-            unit_price = float(item.get("Price", price_for_product(product_id)))
-        except (TypeError, ValueError):
+        raw_price = item.get("Price")
+        if raw_price is not None:
+            try:
+                unit_price = float(str(raw_price).replace(",", "").strip())
+            except (TypeError, ValueError):
+                unit_price = price_for_product(product_id)
+        else:
             unit_price = price_for_product(product_id)
         quantity = max(1, int(item.get("quantity", 1)))
         item["Price"] = format_price(unit_price)
         item["quantity"] = quantity
         item["line_total"] = format_price(unit_price * quantity)
         normalized.append(item)
-    subtotal = round(sum(float(item["Price"]) * int(item["quantity"]) for item in normalized), 2)
+    subtotal = round(
+        sum(float(str(item["Price"]).replace(",", "")) * int(item["quantity"]) for item in normalized),
+        2,
+    )
     return normalized, subtotal
 
 
@@ -65,7 +72,7 @@ class CartState(UserState):
         self.sync_to_firebase()
 
     def sync_to_firebase(self):
-        if self.logged_in and self.firebase_uid:
+        if self._is_firebase_configured() and self.logged_in and self.firebase_uid:
             try:
                 self._get_firebase().database().child("users").child(self.firebase_uid).child(
                     "cart"
@@ -74,7 +81,7 @@ class CartState(UserState):
                 print(f"Firebase cart sync failed: {exc}")
 
     def load_from_firebase(self):
-        if self.logged_in and self.firebase_uid:
+        if self._is_firebase_configured() and self.logged_in and self.firebase_uid:
             try:
                 value = (
                     self._get_firebase()

@@ -14,6 +14,7 @@ def navbar() -> rx.Component:
                 rx.link("Home", href="/", color="#4A332C", _hover={"color": "#6F3E3F"}),
                 rx.link("Wishlist", href="/wishlist", color="#4A332C", _hover={"color": "#6F3E3F"}),
                 rx.link("Orders", href="/orders", color="#4A332C", _hover={"color": "#6F3E3F"}),
+                rx.link("Analytics", href="/analytics", color="#4A332C", _hover={"color": "#6F3E3F"}),
                 rx.cond(UserState.logged_in, rx.link("Profile", href="/profile", color="#4A332C", _hover={"color": "#6F3E3F"})),
                 
                 # Amazon-style search bar

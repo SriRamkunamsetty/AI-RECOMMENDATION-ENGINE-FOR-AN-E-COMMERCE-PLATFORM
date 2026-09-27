@@ -3,7 +3,7 @@ from components.navbar import navbar
 from components.product_card import product_card
 from state.wishlist_state import WishlistState
 
-@rx.page(route="/wishlist", title="My Wishlist")
+@rx.page(route="/wishlist", title="My Wishlist", on_load=WishlistState.load_from_firebase)
 def wishlist() -> rx.Component:
     return rx.box(
         navbar(),

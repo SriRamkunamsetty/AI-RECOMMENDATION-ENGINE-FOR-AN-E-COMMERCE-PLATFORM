@@ -42,6 +42,51 @@ def _relevant_products_context(user_query: str = "", top_n: int = 8) -> str:
         return "Catalog context is temporarily unavailable. Do not invent product details or prices."
 
 
+def _generate_offline_assistant_response(user_query: str) -> str:
+    """Generate intelligent rule-based catalog recommendations when Groq is unconfigured or unavailable."""
+    query = (user_query or "").strip().lower()
+    greetings = {"hi", "hello", "hey", "hola", "help", "who are you", "what can you do"}
+    if query in greetings or not query:
+        return (
+            "👋 Hello! I'm your AI Shopping Assistant. "
+            "I can search our catalog, find bestsellers, and suggest personalized items.\n\n"
+            "Try asking me:\n"
+            "• *'Show me top rated items'*\n"
+            "• *'Find lip makeup or hair care'*\n"
+            "• *'Recommendations under ₹1,000'*"
+        )
+
+    if any(k in query for k in ("best", "popular", "top rated", "trending", "recommend")):
+        from backend.rating_based import get_rating_based_recommendations
+        recs = get_rating_based_recommendations(top_n=3)
+        if not recs.empty:
+            items_str = []
+            for _, r in recs.iterrows():
+                name = str(r.get("Product_Display_Name", r.get("Name", "Product")))[:55]
+                items_str.append(
+                    f"• **[{name}](/product/{int(r['ProdID'])})**\n"
+                    f"  💰 ₹{price_for_product(r['ProdID']):,.2f} | ★ {float(r.get('Rating', 0)):.1f} | ✨ *{r.get('Explanation', 'Bestseller')}*"
+                )
+            return "🌟 Here are our **Top-Rated Bestsellers** right now:\n\n" + "\n\n".join(items_str)
+
+    from backend.content_filtering import get_content_based_search_recommendations
+    recs = get_content_based_search_recommendations(search_query=user_query, top_n=3)
+    if not recs.empty:
+        items_str = []
+        for _, r in recs.iterrows():
+            name = str(r.get("Product_Display_Name", r.get("Name", "Product")))[:55]
+            items_str.append(
+                f"• **[{name}](/product/{int(r['ProdID'])})**\n"
+                f"  💰 ₹{price_for_product(r['ProdID']):,.2f} | ★ {float(r.get('Rating', 0)):.1f} | ✨ *{r.get('Explanation', 'Relevant match')}*"
+            )
+        return f"🔍 Here are the top items matching **'{user_query}'** in our catalog:\n\n" + "\n\n".join(items_str)
+
+    return (
+        f"I searched for **'{user_query}'**, but couldn't find an exact match in our current catalog. "
+        "Try searching for broad categories like *'beauty'*, *'hair care'*, *'skincare'*, or *'health'*!"
+    )
+
+
 class ChatState(rx.State):
     is_open: bool = False
     messages: list[dict[str, str]] = [
@@ -71,7 +116,7 @@ class ChatState(rx.State):
             self.messages.append(
                 {
                     "role": "assistant",
-                    "content": "The AI assistant is not configured. Set GROQ_API_KEY before using it.",
+                    "content": _generate_offline_assistant_response(user_text),
                 }
             )
             return
@@ -95,9 +140,12 @@ class ChatState(rx.State):
                 {"role": "assistant", "content": completion.choices[0].message.content}
             )
         except Exception as exc:
-            print(f"Groq request failed: {exc}")
+            print(f"Groq request failed: {exc}, using offline fallback")
             self.messages.append(
-                {"role": "assistant", "content": "The AI assistant is temporarily unavailable."}
+                {
+                    "role": "assistant",
+                    "content": _generate_offline_assistant_response(user_text),
+                }
             )
 
 

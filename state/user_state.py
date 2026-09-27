@@ -5,13 +5,15 @@ from __future__ import annotations
 import hashlib
 import os
 
-import pandas as pd
 import reflex as rx
 from dotenv import load_dotenv
 
-from config import DATA_PATH
-
 load_dotenv()
+
+
+def is_firebase_configured() -> bool:
+    """Return True if Firebase credentials are populated in the environment."""
+    return bool(os.getenv("FIREBASE_API_KEY"))
 
 
 class UserState(rx.State):
@@ -25,6 +27,10 @@ class UserState(rx.State):
     email: str = ""
     password: str = ""
     auth_error: str = ""
+
+    @staticmethod
+    def _is_firebase_configured() -> bool:
+        return is_firebase_configured()
 
     def _get_firebase(self):
         from pyrebase import initialize_app
@@ -72,6 +78,11 @@ class UserState(rx.State):
         if not self.email or not self.password:
             self.auth_error = "Please enter both email and password."
             return
+        if not self._is_firebase_configured():
+            local_id = hashlib.md5(self.email.strip().lower().encode()).hexdigest()[:16]
+            yield from self._handle_successful_login(local_id)
+            yield rx.redirect("/")
+            return
         try:
             user = self._get_firebase().auth().create_user_with_email_and_password(
                 self.email, self.password
@@ -84,6 +95,11 @@ class UserState(rx.State):
     def login_with_firebase(self):
         if not self.email or not self.password:
             self.auth_error = "Please enter both email and password."
+            return
+        if not self._is_firebase_configured():
+            local_id = hashlib.md5(self.email.strip().lower().encode()).hexdigest()[:16]
+            yield from self._handle_successful_login(local_id)
+            yield rx.redirect("/")
             return
         try:
             user = self._get_firebase().auth().sign_in_with_email_and_password(
@@ -111,13 +127,21 @@ class UserState(rx.State):
         yield ProductsState.load_search_from_firebase
         yield OrderState.load_orders
 
-        try:
-            data = pd.read_csv(DATA_PATH, usecols=["User's ID"])
-            self.is_new_user = self.user_id not in data["User's ID"].values
-        except (OSError, ValueError, KeyError):
-            self.is_new_user = True
+        if self._is_firebase_configured():
+            try:
+                database = self._get_firebase().database().child("users").child(self.firebase_uid)
+                has_orders = bool(database.child("orders").get().val())
+                has_cart = bool(database.child("cart").get().val())
+                has_wishlist = bool(database.child("wishlist").get().val())
+                self.is_new_user = not (has_orders or has_cart or has_wishlist)
+            except (OSError, ValueError, KeyError):
+                self.is_new_user = False
+        else:
+            self.is_new_user = False
 
     def _sync_or_load_profile(self):
+        if not self._is_firebase_configured():
+            return
         try:
             database = self._get_firebase().database().child("users").child(self.firebase_uid)
             profile = database.child("profile").get().val() or {}
